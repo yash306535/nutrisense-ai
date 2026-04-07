@@ -8,8 +8,9 @@ let client = null;
  * @returns {Redis} Redis client instance
  */
 function getRedisClient() {
+  if (!process.env.REDIS_URL) return null; // Redis disabled
   if (!client) {
-    client = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+    client = new Redis(process.env.REDIS_URL, {
       maxRetriesPerRequest: 3,
       enableReadyCheck: true,
       retryStrategy(times) {
@@ -36,6 +37,7 @@ function getRedisClient() {
 async function getCached(key) {
   try {
     const redis = getRedisClient();
+    if (!redis) return null;
     return await redis.get(key);
   } catch (err) {
     logger.error('getCached error', { key, error: err.message });
@@ -43,16 +45,10 @@ async function getCached(key) {
   }
 }
 
-/**
- * Set a value in Redis cache with optional TTL.
- * @param {string} key - Cache key
- * @param {string} value - Value to cache (string)
- * @param {number} [ttl] - TTL in seconds (optional)
- * @returns {Promise<void>}
- */
 async function setCached(key, value, ttl) {
   try {
     const redis = getRedisClient();
+    if (!redis) return;
     if (ttl) {
       await redis.set(key, value, 'EX', ttl);
     } else {
@@ -63,14 +59,10 @@ async function setCached(key, value, ttl) {
   }
 }
 
-/**
- * Delete a key from Redis cache.
- * @param {string} key - Cache key
- * @returns {Promise<void>}
- */
 async function deleteCached(key) {
   try {
     const redis = getRedisClient();
+    if (!redis) return;
     await redis.del(key);
   } catch (err) {
     logger.error('deleteCached error', { key, error: err.message });
@@ -87,23 +79,15 @@ async function blacklistToken(token, ttl) {
   await setCached(`blacklist:${token}`, '1', ttl);
 }
 
-/**
- * Check if a token is blacklisted.
- * @param {string} token - Token to check
- * @returns {Promise<boolean>}
- */
 async function isTokenBlacklisted(token) {
   const val = await getCached(`blacklist:${token}`);
   return val === '1';
 }
 
-/**
- * Check Redis connection status.
- * @returns {Promise<boolean>}
- */
 async function isRedisConnected() {
   try {
     const redis = getRedisClient();
+    if (!redis) return false;
     const pong = await redis.ping();
     return pong === 'PONG';
   } catch {

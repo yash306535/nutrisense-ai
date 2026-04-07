@@ -7,7 +7,7 @@ if (process.env.NODE_ENV !== 'production') {
 // ── Validate required env vars before anything else ───────────────────────
 const REQUIRED_ENV = [
   'MONGODB_URI',
-  'REDIS_URL',
+  // 'REDIS_URL', // optional — Redis disabled for now
   'JWT_ACCESS_SECRET',
   'JWT_REFRESH_SECRET',
   'NVIDIA_API_KEY',
@@ -37,8 +37,8 @@ const HOST = '0.0.0.0';
 async function startServer() {
   await connectDB();
 
-  // Initialize Redis
-  getRedisClient();
+  // Initialize Redis (optional — skipped if REDIS_URL not set)
+  if (process.env.REDIS_URL) getRedisClient();
 
   server.listen(PORT, HOST, () => {
     logger.info(`NutriSense server running`, {

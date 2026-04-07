@@ -1,0 +1,87 @@
+version: '3.9'
+
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: nutrisense-api
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - MONGODB_URI=mongodb://mongo:27017/nutrisense
+      - REDIS_URL=redis://redis:6379
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_ACCESS_EXPIRY=15m
+      - JWT_REFRESH_EXPIRY=7d
+      - NVIDIA_API_KEY=${NVIDIA_API_KEY}
+      - OPEN_FOOD_FACTS_BASE_URL=https://world.openfoodfacts.org/api/v0
+      - CLIENT_URL=${CLIENT_URL:-http://localhost:5173}
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - nutrisense-net
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: nutrisense-web
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - server
+    networks:
+      - nutrisense-net
+
+  mongo:
+    image: mongo:7.0
+    container_name: nutrisense-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nutrisense-net
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: nutrisense-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nutrisense-net
+
+volumes:
+  mongo_data:
+  redis_data:
+  uploads:
+
+networks:
+  nutrisense-net:
+    driver: bridge

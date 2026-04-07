@@ -1,0 +1,92 @@
+# Google Cloud Build — CI/CD pipeline for NutriSense
+# Triggered on push to main branch
+
+steps:
+  # ── Build Server Image ────────────────────────────────────────────────────
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-server'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/nutrisense-server:$COMMIT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/nutrisense-server:latest'
+      - './server'
+
+  # ── Push Server Image ─────────────────────────────────────────────────────
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-server'
+    waitFor: ['build-server']
+    args:
+      - 'push'
+      - '--all-tags'
+      - 'gcr.io/$PROJECT_ID/nutrisense-server'
+
+  # ── Deploy Server to Cloud Run ────────────────────────────────────────────
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-server'
+    waitFor: ['push-server']
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'nutrisense-api'
+      - '--image=gcr.io/$PROJECT_ID/nutrisense-server:$COMMIT_SHA'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--port=8080'
+      - '--memory=512Mi'
+      - '--cpu=1'
+      - '--min-instances=0'
+      - '--max-instances=10'
+      - '--concurrency=100'
+      - '--set-env-vars=NODE_ENV=production'
+      - '--set-secrets=MONGODB_URI=nutrisense-mongo-uri:latest,REDIS_URL=nutrisense-redis-url:latest,JWT_ACCESS_SECRET=nutrisense-jwt-access:latest,JWT_REFRESH_SECRET=nutrisense-jwt-refresh:latest,NVIDIA_API_KEY=nutrisense-nvidia-key:latest'
+
+  # ── Build Client Image ────────────────────────────────────────────────────
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-client'
+    waitFor: ['deploy-server']
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/nutrisense-client:$COMMIT_SHA'
+      - '--build-arg'
+      - 'VITE_API_URL=https://nutrisense-api-$_CLOUD_RUN_SUFFIX.a.run.app/api'
+      - './client'
+
+  # ── Push Client Image ─────────────────────────────────────────────────────
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-client'
+    waitFor: ['build-client']
+    args: ['push', 'gcr.io/$PROJECT_ID/nutrisense-client:$COMMIT_SHA']
+
+  # ── Deploy Client to Cloud Run ────────────────────────────────────────────
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-client'
+    waitFor: ['push-client']
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'nutrisense-web'
+      - '--image=gcr.io/$PROJECT_ID/nutrisense-client:$COMMIT_SHA'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--port=80'
+      - '--memory=256Mi'
+      - '--cpu=1'
+      - '--min-instances=0'
+      - '--max-instances=5'
+
+images:
+  - 'gcr.io/$PROJECT_ID/nutrisense-server:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/nutrisense-client:$COMMIT_SHA'
+
+timeout: '1200s'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'

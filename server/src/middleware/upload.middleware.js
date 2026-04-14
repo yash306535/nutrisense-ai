@@ -3,8 +3,9 @@ const path = require('path');
 const fs = require('fs');
 const ApiError = require('../utils/ApiError');
 
-// Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, '../../../uploads');
+// Keep uploads inside the app working directory so local dev and Cloud Run
+// both write to a path the process can access.
+const uploadsDir = path.resolve(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }

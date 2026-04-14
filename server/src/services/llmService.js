@@ -22,7 +22,7 @@ function hashPrompt(prompt) {
  * @param {string} prompt - The user prompt to send to the LLM.
  * @returns {Promise<Object>} Parsed JSON object from LLM response.
  */
-async function generateJSON(prompt) {
+async function generateJSON(prompt, { maxTokens = 2048 } = {}) {
   const cacheKey = hashPrompt(prompt);
 
   try {
@@ -47,7 +47,7 @@ async function generateJSON(prompt) {
   const payload = {
     model: 'meta/llama3-70b-instruct',
     messages: [{ role: 'user', content: prompt }],
-    max_tokens: 2048,
+    max_tokens: maxTokens,
     temperature: 1.0,
     top_p: 1.0,
     frequency_penalty: 0.0,
@@ -55,7 +55,7 @@ async function generateJSON(prompt) {
     stream,
   };
 
-  logger.info('LLM generateJSON request', { promptLength: prompt.length });
+  logger.info('LLM generateJSON request', { promptLength: prompt.length, maxTokens });
 
   const response = await fetch(invokeUrl, {
     method: 'POST',
@@ -72,18 +72,33 @@ async function generateJSON(prompt) {
   const data = await response.json();
   const rawText = data.choices[0].message.content;
 
-  // Safe JSON extraction — strips markdown fences if model wraps output
-  const jsonMatch =
-    rawText.match(/```json\s*([\s\S]*?)```/) ||
-    rawText.match(/```\s*([\s\S]*?)```/) ||
-    rawText.match(/(\{[\s\S]*\})/) ||
-    rawText.match(/(\[[\s\S]*\])/);
+  // Safe JSON extraction — strips markdown fences, then finds the outermost
+  // JSON structure (array OR object) by locating the first [ or { and the
+  // last matching ] or }.  This correctly handles array responses like
+  // [{...},{...}] where the old object-first regex would strip the brackets.
+  let cleanJson = rawText.trim();
 
-  const cleanJson = jsonMatch ? jsonMatch[1] : rawText;
+  const fenceMatch =
+    cleanJson.match(/```json\s*([\s\S]*?)```/) ||
+    cleanJson.match(/```\s*([\s\S]*?)```/);
+
+  if (fenceMatch) {
+    cleanJson = fenceMatch[1].trim();
+  } else {
+    const firstBracket = cleanJson.search(/[\[{]/);
+    if (firstBracket >= 0) {
+      const startChar = cleanJson[firstBracket];
+      const endChar = startChar === '[' ? ']' : '}';
+      const lastIndex = cleanJson.lastIndexOf(endChar);
+      if (lastIndex > firstBracket) {
+        cleanJson = cleanJson.slice(firstBracket, lastIndex + 1);
+      }
+    }
+  }
 
   let parsed;
   try {
-    parsed = JSON.parse(cleanJson.trim());
+    parsed = JSON.parse(cleanJson);
   } catch (parseErr) {
     logger.error('LLM JSON parse error', { rawText, error: parseErr.message });
     throw new Error('LLM returned invalid JSON');

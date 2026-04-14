@@ -161,9 +161,12 @@ Return ONLY a JSON array (no explanation):
 ]
 Return ${days} items in the array. Vary meals — no repeats.`;
 
-  const plan = await generateJSON(prompt);
+  const plan = await generateJSON(prompt, { maxTokens: 4096 });
 
-  res.json(new ApiResponse(200, { plan }, 'Meal plan generated'));
+  // Normalise: LLM may wrap array in { plan: [...] } — unwrap it
+  const planArray = Array.isArray(plan) ? plan : (plan.plan || plan.days || Object.values(plan)[0] || []);
+
+  res.json(new ApiResponse(200, { plan: planArray }, 'Meal plan generated'));
 });
 
 /**

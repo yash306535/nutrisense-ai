@@ -152,16 +152,16 @@ Return ONLY a JSON array (no explanation):
 [
   {
     "day": 1,
-    "breakfast": { "name": "string", "calories": number, "prep_time_min": number },
-    "lunch": { "name": "string", "calories": number, "prep_time_min": number },
-    "dinner": { "name": "string", "calories": number, "prep_time_min": number },
-    "snack": { "name": "string", "calories": number },
+    "breakfast": { "name": "string", "calories": number, "protein_g": number, "carbs_g": number, "fat_g": number, "fiber_g": number, "prep_time_min": number },
+    "lunch": { "name": "string", "calories": number, "protein_g": number, "carbs_g": number, "fat_g": number, "fiber_g": number, "prep_time_min": number },
+    "dinner": { "name": "string", "calories": number, "protein_g": number, "carbs_g": number, "fat_g": number, "fiber_g": number, "prep_time_min": number },
+    "snack": { "name": "string", "calories": number, "protein_g": number, "carbs_g": number, "fat_g": number, "fiber_g": number },
     "total_calories": number
   }
 ]
-Return ${days} items in the array. Vary meals — no repeats.`;
+Return ${days} items in the array. Vary meals — no repeats. Macros (grams) must be realistic and consistent with each meal's calories (protein*4 + carbs*4 + fat*9 ≈ calories).`;
 
-  const plan = await generateJSON(prompt, { maxTokens: 4096 });
+  const plan = await generateJSON(prompt, { maxTokens: 8192 });
 
   // Normalise: LLM may wrap array in { plan: [...] } — unwrap it
   const planArray = Array.isArray(plan) ? plan : (plan.plan || plan.days || Object.values(plan)[0] || []);
@@ -201,7 +201,7 @@ const healthifyRecipe = asyncHandler(async (req, res) => {
 
   const prompt = `Rewrite this recipe to be healthier while keeping the same cuisine style.
 Original: ${JSON.stringify(recipe)}
-Make these improvements: reduce sodium, replace refined carbs, add fiber, reduce saturated fat.
+Make these improvements: reduce sodium, replace refined carbs, add fiber, reduce saturated fat. Update nutrition_per_serving (protein_g, carbs_g, fat_g, fiber_g) to match.
 Return the same JSON schema with updated values and a "changes_made" string field explaining modifications.
 Return ONLY valid JSON.`;
 

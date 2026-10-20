@@ -9,10 +9,13 @@ import Button from '../components/atoms/Button';
 import Badge from '../components/atoms/Badge';
 import Spinner from '../components/atoms/Spinner';
 import { CUISINES } from '../utils/constants';
+import useAuthStore from '../store/authStore';
+import { NutrientGrid, getNutrition, getGoalFit, GOAL_TONE } from '../components/molecules/NutrientInfo';
 
 const DIET_FILTERS = ['all', 'vegan', 'vegetarian', 'keto', 'paleo', 'gluten-free'];
 
 export default function Recipes() {
+  const goal = useAuthStore((st) => st.user?.goal);
   const [query, setQuery] = useState('');
   const [diet, setDiet] = useState('all');
   const [maxCalories, setMaxCalories] = useState(600);
@@ -157,6 +160,24 @@ export default function Recipes() {
                     </div>
                   ))}
                 </div>
+
+                {(() => {
+                  const r = healthified || selected;
+                  const n = getNutrition(r);
+                  const fit = getGoalFit(r.calories_per_serving, n, goal);
+                  return (
+                    <div className="mb-4 space-y-2">
+                      <h3 className="font-bold text-text-primary">Nutrition per serving</h3>
+                      <NutrientGrid nutrition={n} />
+                      {fit && (
+                        <div className={`rounded-xl p-3 text-xs ${GOAL_TONE[fit.tone]}`}>
+                          <p className="font-bold">{fit.label}</p>
+                          <p className="opacity-80">{fit.tip}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 <div className="mb-4">
                   <h3 className="font-bold text-text-primary mb-2">Ingredients</h3>

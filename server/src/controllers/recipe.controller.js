@@ -22,10 +22,11 @@ Return ONLY a JSON array:
   "diet_tags": ["vegan","gluten-free"],
   "ingredients": ["ingredient 1", "ingredient 2"],
   "steps": ["step 1", "step 2", "step 3"],
-  "health_score": number between 0 and 100
+  "health_score": number between 0 and 100,
+  "nutrition_per_serving": { "protein_g": number, "carbs_g": number, "fat_g": number, "fiber_g": number }
 }]`;
 
-  const recipes = await generateJSON(prompt);
+  const recipes = await generateJSON(prompt, { maxTokens: 6144 });
 
   res.json(new ApiResponse(200, { recipes: Array.isArray(recipes) ? recipes : [recipes] }, 'Recipes fetched'));
 });

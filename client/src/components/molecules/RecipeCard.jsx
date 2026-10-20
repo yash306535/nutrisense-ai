@@ -2,6 +2,8 @@ import { motion } from 'framer-motion';
 import { Clock, Flame, Sparkles } from 'lucide-react';
 import Badge from '../atoms/Badge';
 import { getHealthScoreColor } from '../../utils/formatters';
+import useAuthStore from '../../store/authStore';
+import { NutrientChips, getNutrition, getGoalFit, GOAL_TONE } from './NutrientInfo';
 
 const cuisineEmojis = {
   Mediterranean: '🫒', Asian: '🍜', Indian: '🍛', Mexican: '🌮',
@@ -10,6 +12,9 @@ const cuisineEmojis = {
 
 export default function RecipeCard({ recipe, onHealthify, onClick }) {
   const scoreColor = getHealthScoreColor(recipe.health_score || 0);
+  const goal = useAuthStore((st) => st.user?.goal);
+  const nutrition = getNutrition(recipe);
+  const fit = getGoalFit(recipe.calories_per_serving, nutrition, goal);
 
   return (
     <motion.div
@@ -42,6 +47,13 @@ export default function RecipeCard({ recipe, onHealthify, onClick }) {
             {recipe.prep_time_min}min
           </span>
         </div>
+
+        <NutrientChips nutrition={nutrition} className="mb-3" />
+        {fit && (
+          <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-3 ${GOAL_TONE[fit.tone]}`}>
+            {fit.label}
+          </span>
+        )}
 
         {recipe.diet_tags?.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-3">

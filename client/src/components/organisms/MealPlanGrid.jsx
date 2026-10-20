@@ -7,6 +7,7 @@ import Button from '../atoms/Button';
 import Spinner from '../atoms/Spinner';
 import { aiAPI, mealAPI } from '../../services/api';
 import { formatCalories } from '../../utils/formatters';
+import { NutrientChips } from '../molecules/NutrientInfo';
 
 const mealTypeColors = {
   breakfast: 'bg-secondary/10 border-secondary/20 text-secondary',
@@ -33,7 +34,7 @@ export default function MealPlanGrid({ plan = [], onRegenerate }) {
               name: meal.name,
               mealCategory: type,
               calories: meal.calories,
-              protein: 0, carbs: 0, fat: 0,
+              protein: meal.protein_g || 0, carbs: meal.carbs_g || 0, fat: meal.fat_g || 0,
               source: 'ai',
             });
           }
@@ -105,6 +106,10 @@ export default function MealPlanGrid({ plan = [], onRegenerate }) {
               <div className="bg-gradient-to-r from-primary/10 to-primary/5 px-4 py-3 border-b border-slate-100">
                 <p className="font-bold text-primary text-sm" style={{ fontFamily: 'Sora' }}>Day {day.day}</p>
                 <p className="font-mono text-xs text-text-muted">{formatCalories(day.total_calories)}</p>
+                <p className="font-mono text-[10px] text-text-muted">
+                  P {Math.round(['breakfast','lunch','dinner','snack'].reduce((a, t) => a + (day[t]?.protein_g || 0), 0))}g ·
+                  Fb {Math.round(['breakfast','lunch','dinner','snack'].reduce((a, t) => a + (day[t]?.fiber_g || 0), 0))}g
+                </p>
               </div>
 
               <div className="p-3 space-y-2">
@@ -134,6 +139,7 @@ export default function MealPlanGrid({ plan = [], onRegenerate }) {
                               <span className="text-[10px] opacity-70">{meal.prep_time_min}min</span>
                             )}
                           </div>
+                          <NutrientChips nutrition={meal} className="mt-1.5" />
                         </>
                       ) : (
                         <p className="text-xs opacity-50">No meal</p>

@@ -45,7 +45,7 @@ async function generateJSON(prompt, { maxTokens = 2048 } = {}) {
   };
 
   const payload = {
-    model: 'meta/llama3-70b-instruct',
+    model: process.env.NVIDIA_MODEL || 'nvidia/nemotron-3-super-120b-a12b',
     messages: [{ role: 'user', content: prompt }],
     max_tokens: maxTokens,
     temperature: 1.0,
@@ -70,7 +70,7 @@ async function generateJSON(prompt, { maxTokens = 2048 } = {}) {
   }
 
   const data = await response.json();
-  const rawText = data.choices[0].message.content;
+  const rawText = data.choices[0].message.content || '';
 
   // Safe JSON extraction — strips markdown fences, then finds the outermost
   // JSON structure (array OR object) by locating the first [ or { and the
@@ -144,7 +144,7 @@ async function generateText(prompt) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'meta/llama3-70b-instruct',
+      model: process.env.NVIDIA_MODEL || 'nvidia/nemotron-3-super-120b-a12b',
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 2048,
       temperature: 1.0,

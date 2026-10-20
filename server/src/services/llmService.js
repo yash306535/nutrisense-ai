@@ -46,6 +46,7 @@ async function generateJSON(prompt, { maxTokens = 2048 } = {}) {
 
   const payload = {
     model: process.env.NVIDIA_MODEL || 'nvidia/nemotron-3-super-120b-a12b',
+    chat_template_kwargs: { enable_thinking: false }, // skip hidden reasoning: it can consume max_tokens and return empty content
     messages: [{ role: 'user', content: prompt }],
     max_tokens: maxTokens,
     temperature: 1.0,
@@ -145,6 +146,7 @@ async function generateText(prompt) {
     },
     body: JSON.stringify({
       model: process.env.NVIDIA_MODEL || 'nvidia/nemotron-3-super-120b-a12b',
+      chat_template_kwargs: { enable_thinking: false },
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 2048,
       temperature: 1.0,

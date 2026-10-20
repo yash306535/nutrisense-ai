@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { aiAPI } from '../services/api';
 import useAuthStore from '../store/authStore';
 import MealPlanGrid from '../components/organisms/MealPlanGrid';
+import AILoadingExperience from '../components/molecules/AILoadingExperience';
 import Button from '../components/atoms/Button';
 import Input from '../components/atoms/Input';
 import { CUISINES } from '../utils/constants';
@@ -125,12 +126,7 @@ export default function MealPlanner() {
 
       {/* Generated plan */}
       {generateMutation.isPending && (
-        <div className="text-center py-12">
-          <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-            <Sparkles size={40} className="text-accent mx-auto" />
-          </motion.div>
-          <p className="mt-4 text-text-muted">AI is crafting your personalized meal plan...</p>
-        </div>
+        <AILoadingExperience expectedSeconds={50} cards={4} />
       )}
 
       {plan.length > 0 && !generateMutation.isPending && (

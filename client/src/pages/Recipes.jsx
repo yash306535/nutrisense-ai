@@ -8,6 +8,7 @@ import RecipeCard from '../components/molecules/RecipeCard';
 import Button from '../components/atoms/Button';
 import Badge from '../components/atoms/Badge';
 import Spinner from '../components/atoms/Spinner';
+import AILoadingExperience from '../components/molecules/AILoadingExperience';
 import { CUISINES } from '../utils/constants';
 import useAuthStore from '../store/authStore';
 import { NutrientGrid, getNutrition, getGoalFit, GOAL_TONE } from '../components/molecules/NutrientInfo';
@@ -92,9 +93,18 @@ export default function Recipes() {
 
       {/* Recipes Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {[1,2,3,4,5,6].map((i) => <div key={i} className="h-56 animate-pulse bg-slate-100 rounded-2xl" />)}
-        </div>
+        <AILoadingExperience
+          title="Cooking up recipes"
+          subtitle="Finding healthy recipes with full nutrition for you."
+          expectedSeconds={25}
+          cards={4}
+          stages={[
+            { icon: '🔎', text: 'Searching the recipe book' },
+            { icon: '🥗', text: 'Matching your diet and calories' },
+            { icon: '⚖️', text: 'Counting protein, carbs, fat and fiber' },
+            { icon: '👨‍🍳', text: 'Plating up your recipes' },
+          ]}
+        />
       ) : recipes.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-2xl border border-slate-100">
           <ChefHat size={48} className="mx-auto text-text-muted mb-3" />
